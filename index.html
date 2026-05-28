@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Budget Allowance Chatbot</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f3; --bg3: #efefec;
+    --txt: #1a1a18; --txt2: #6b6b67;
+    --bdr: rgba(0,0,0,0.12); --bdr2: rgba(0,0,0,0.22);
+    --r: 8px; --rl: 12px;
+    --green: #1D9E75; --gd: #0F6E56; --gl: #E1F5EE;
+    --amber: #BA7517; --red: #A32D2D;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1e1e1c; --bg2:#272725; --bg3:#2f2f2d; --txt:#f0efe8; --txt2:#9a9a94; --bdr:rgba(255,255,255,0.1); --bdr2:rgba(255,255,255,0.2); --gl:#083424; }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 16px; }
+
+  /* Setup screen */
+  #setup { background: var(--bg); border-radius: var(--rl); border: 0.5px solid var(--bdr); padding: 28px; width: 100%; max-width: 440px; }
+  #setup h1 { font-size: 20px; font-weight: 500; color: var(--txt); margin-bottom: 6px; }
+  #setup p { font-size: 13px; color: var(--txt2); line-height: 1.6; margin-bottom: 20px; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; background: var(--gl); color: var(--gd); font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 99px; margin-bottom: 16px; }
+  #setup label { font-size: 12px; color: var(--txt2); display: block; margin-bottom: 5px; }
+  #setup input { width: 100%; padding: 9px 12px; font-size: 13px; border: 0.5px solid var(--bdr2); border-radius: var(--r); background: var(--bg); color: var(--txt); font-family: monospace; margin-bottom: 12px; }
+  #setup input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 2px rgba(29,158,117,0.15); }
+  #start-btn { width: 100%; padding: 10px; background: var(--green); color: #fff; border: none; border-radius: var(--r); font-size: 14px; font-weight: 500; cursor: pointer; }
+  #start-btn:hover { background: var(--gd); }
+  .steps { margin-top: 18px; border-top: 0.5px solid var(--bdr); padding-top: 16px; }
+  .steps h3 { font-size: 12px; font-weight: 500; color: var(--txt2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .step-num { width: 20px; height: 20px; border-radius: 50%; background: var(--green); color: #fff; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .step p { font-size: 12px; color: var(--txt2); line-height: 1.5; }
+  .step a { color: var(--green); text-decoration: none; }
+
+  /* App */
+  #app { display: none; width: 100%; max-width: 840px; height: 590px; background: var(--bg); border-radius: var(--rl); border: 0.5px solid var(--bdr); overflow: hidden; }
+  #app.show { display: grid; grid-template-columns: 235px 1fr; }
+  #sidebar { border-right: 0.5px solid var(--bdr); display: flex; flex-direction: column; background: var(--bg2); }
+  .sb-head { padding: 14px 14px 10px; border-bottom: 0.5px solid var(--bdr); font-size: 12px; font-weight: 500; color: var(--txt2); text-transform: uppercase; letter-spacing: 0.06em; }
+  #summary { padding: 12px 14px; border-bottom: 0.5px solid var(--bdr); }
+  .srow { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .slabel { font-size: 12px; color: var(--txt2); }
+  .sval { font-size: 14px; font-weight: 500; color: var(--txt); }
+  .sval.over { color: var(--red); }
+  .pbar { height: 4px; background: var(--bg3); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+  .pfill { height: 100%; border-radius: 99px; background: var(--green); transition: width 0.3s; }
+  .pfill.warn { background: var(--amber); }
+  .pfill.over { background: var(--red); }
+  #cats { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .cat { padding: 8px 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; }
+  .cat:hover { background: var(--bg); }
+  .cat.active { background: var(--bg); border-left: 2px solid var(--green); }
+  .cdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .cinfo { flex: 1; min-width: 0; }
+  .cname { font-size: 13px; font-weight: 500; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .camt { font-size: 11px; color: var(--txt2); }
+  #add-btn { margin: 8px 14px 14px; background: transparent; border: 0.5px dashed var(--bdr2); border-radius: var(--r); padding: 7px; font-size: 12px; color: var(--txt2); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  #add-btn:hover { background: var(--bg); }
+  #chat { display: flex; flex-direction: column; }
+  #chat-head { padding: 13px 16px; border-bottom: 0.5px solid var(--bdr); display: flex; align-items: center; gap: 10px; }
+  .av { width: 32px; height: 32px; border-radius: 50%; background: var(--gl); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .av i { font-size: 16px; color: var(--gd); }
+  #chat-head h2 { font-size: 14px; font-weight: 500; color: var(--txt); }
+  #chat-head p { font-size: 11px; color: var(--txt2); }
+  #msgs { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { display: flex; gap: 8px; align-items: flex-start; max-width: 90%; }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .bubble { padding: 9px 13px; border-radius: var(--rl); font-size: 13px; line-height: 1.55; }
+  .msg.bot .bubble { background: var(--bg2); color: var(--txt); border-bottom-left-radius: 4px; }
+  .msg.user .bubble { background: var(--green); color: #fff; border-bottom-right-radius: 4px; }
+  .mav { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; }
+  .bav { background: var(--gl); color: var(--gd); }
+  .uav { background: #B5D4F4; color: #0C447C; }
+  .dots { display: flex; gap: 4px; align-items: center; padding: 12px 13px; }
+  .dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--txt2); animation: bop 1.2s infinite; }
+  .dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+  @keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+  #quick { padding: 8px 16px; display: flex; gap: 6px; flex-wrap: wrap; border-top: 0.5px solid var(--bdr); }
+  .qbtn { font-size: 11px; padding: 5px 10px; border-radius: 99px; border: 0.5px solid var(--bdr2); background: transparent; color: var(--txt2); cursor: pointer; white-space: nowrap; }
+  .qbtn:hover { background: var(--bg2); color: var(--txt); }
+  #input-row { padding: 10px 14px; border-top: 0.5px solid var(--bdr); display: flex; gap: 8px; align-items: flex-end; }
+  #inp { flex: 1; resize: none; border: 0.5px solid var(--bdr2); border-radius: var(--r); padding: 8px 12px; font-size: 13px; font-family: inherit; background: var(--bg); color: var(--txt); line-height: 1.4; max-height: 80px; overflow-y: auto; }
+  #inp:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 2px rgba(29,158,117,0.15); }
+  #sbtn { width: 34px; height: 34px; border-radius: var(--r); background: var(--green); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  #sbtn:hover { background: var(--gd); }
+  #sbtn i { font-size: 16px; color: #fff; }
+  #sbtn:disabled { background: var(--bg3); cursor: not-allowed; }
+  #sbtn:disabled i { color: var(--txt2); }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal { background: var(--bg); border-radius: var(--rl); padding: 22px; width: 300px; border: 0.5px solid var(--bdr); }
+  .modal h3 { font-size: 15px; font-weight: 500; color: var(--txt); margin-bottom: 14px; }
+  .modal label { font-size: 12px; color: var(--txt2); display: block; margin-bottom: 4px; }
+  .modal input { width: 100%; margin-bottom: 10px; padding: 8px 10px; font-size: 13px; border: 0.5px solid var(--bdr2); border-radius: var(--r); background: var(--bg); color: var(--txt); }
+  .mactions { display: flex; gap: 8px; margin-top: 6px; }
+  .mactions button { flex: 1; padding: 8px; font-size: 13px; border-radius: var(--r); cursor: pointer; }
+  .mcx { background: transparent; border: 0.5px solid var(--bdr2); color: var(--txt2); }
+  .mok { background: var(--green); border: none; color: #fff; font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- Setup Screen -->
+<div id="setup">
+  <div class="badge"><i class="ti ti-sparkles"></i> 100% Free · No credit card needed</div>
+  <h1>💰 Budget Allowance Chatbot</h1>
+  <p>Powered by Google Gemini — free AI with no billing required. Enter your free Gemini API key to get started.</p>
+  <label for="key-inp">Gemini API Key</label>
+  <input type="password" id="key-inp" placeholder="AIza..." autocomplete="off" />
+  <button id="start-btn" onclick="startApp()">Start Chatbot →</button>
+  <div class="steps">
+    <h3>How to get your free key (2 minutes)</h3>
+    <div class="step"><div class="step-num">1</div><p>Go to <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> and sign in with your Google account</p></div>
+    <div class="step"><div class="step-num">2</div><p>Click <strong>"Get API key"</strong> in the left sidebar</p></div>
+    <div class="step"><div class="step-num">3</div><p>Click <strong>"Create API key"</strong> → copy the key (starts with <code style="font-size:11px;background:var(--bg2);padding:1px 4px;border-radius:4px">AIza</code>)</p></div>
+    <div class="step"><div class="step-num">4</div><p>Paste it above and click Start — no credit card, no billing!</p></div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <div id="sidebar">
+    <div class="sb-head"><i class="ti ti-wallet" style="margin-right:4px"></i>My Budget</div>
+    <div id="summary">
+      <div class="srow"><span class="slabel">Total budget</span><span class="sval" id="t-budget">₱0</span></div>
+      <div class="srow"><span class="slabel">Spent</span><span class="sval" id="t-spent">₱0</span></div>
+      <div class="pbar"><div class="pfill" id="o-bar" style="width:0%"></div></div>
+      <div style="margin-top:6px" class="srow"><span class="slabel">Remaining</span><span class="sval" id="t-rem">₱0</span></div>
+    </div>
+    <div id="cats"></div>
+    <button id="add-btn" onclick="showModal()"><i class="ti ti-plus"></i> Add category</button>
+  </div>
+  <div id="chat">
+    <div id="chat-head">
+      <div class="av"><i class="ti ti-robot"></i></div>
+      <div><h2>Budget Advisor</h2><p>Powered by Gemini AI · Free</p></div>
+    </div>
+    <div id="msgs"></div>
+    <div id="quick">
+      <button class="qbtn" onclick="qs('How am I doing with my budget?')">How am I doing?</button>
+      <button class="qbtn" onclick="qs('Where am I overspending?')">Overspending?</button>
+      <button class="qbtn" onclick="qs('Give me saving tips')">Saving tips</button>
+      <button class="qbtn" onclick="qs('Suggest a better budget split')">Budget split</button>
+    </div>
+    <div id="input-row">
+      <textarea id="inp" placeholder="Ask anything or type: add ₱500 to Food" rows="1"></textarea>
+      <button id="sbtn" onclick="send()"><i class="ti ti-send"></i></button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#1D9E75','#185FA5','#BA7517','#D4537E','#7F77DD','#D85A30','#639922','#E24B4A'];
+let KEY = '', busy = false, nid = 5;
+let cats = [
+  {id:1,name:'Food & Dining',budget:3000,spent:1850,color:COLORS[0]},
+  {id:2,name:'Transport',budget:1500,spent:1200,color:COLORS[1]},
+  {id:3,name:'Entertainment',budget:1000,spent:450,color:COLORS[2]},
+  {id:4,name:'Savings',budget:2000,spent:2000,color:COLORS[3]},
+];
+let history = [];
+
+const fmt = n => '₱' + Math.round(n).toLocaleString();
+
+function startApp() {
+  const k = document.getElementById('key-inp').value.trim();
+  if (!k.startsWith('AIza')) { alert('Please enter a valid Gemini API key (starts with AIza)'); return; }
+  KEY = k;
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  renderSidebar();
+  setTimeout(() => addMsg('bot', "Hi! I'm your free Budget Advisor powered by Google Gemini 👋 I can see your current allowance breakdown. Ask me anything, or type \"add ₱[amount] to [category]\" to log an expense!"), 300);
+}
+
+function renderSidebar() {
+  const tb = cats.reduce((s,c)=>s+c.budget,0);
+  const ts = cats.reduce((s,c)=>s+c.spent,0);
+  const rem = tb-ts, pct = tb>0?Math.min(100,Math.round(ts/tb*100)):0;
+  document.getElementById('t-budget').textContent = fmt(tb);
+  document.getElementById('t-spent').textContent = fmt(ts);
+  document.getElementById('t-rem').textContent = fmt(rem);
+  document.getElementById('t-rem').className = 'sval'+(rem<0?' over':'');
+  const bar = document.getElementById('o-bar');
+  bar.style.width = pct+'%';
+  bar.className = 'pfill'+(pct>=100?' over':pct>=80?' warn':'');
+  const el = document.getElementById('cats'); el.innerHTML='';
+  cats.forEach(c => {
+    const p = c.budget>0?Math.min(100,Math.round(c.spent/c.budget*100)):0;
+    const d = document.createElement('div');
+    d.className = 'cat';
+    d.innerHTML = `<div class="cdot" style="background:${c.color}"></div><div class="cinfo"><div class="cname">${c.name}</div><div class="camt">${fmt(c.spent)} / ${fmt(c.budget)} · ${p}%</div></div>`;
+    d.onclick = () => qs('Tell me about my '+c.name+' budget');
+    el.appendChild(d);
+  });
+}
+
+function addMsg(role, text) {
+  const wrap = document.getElementById('msgs');
+  const d = document.createElement('div'); d.className='msg '+role;
+  const av = document.createElement('div'); av.className='mav '+(role==='bot'?'bav':'uav');
+  av.innerHTML = role==='bot'?'<i class="ti ti-robot"></i>':'<i class="ti ti-user"></i>';
+  const b = document.createElement('div'); b.className='bubble'; b.textContent=text;
+  d.appendChild(av); d.appendChild(b); wrap.appendChild(d);
+  wrap.scrollTop=wrap.scrollHeight;
+}
+
+function showDots() {
+  const wrap = document.getElementById('msgs');
+  const d = document.createElement('div'); d.className='msg bot'; d.id='dots';
+  d.innerHTML='<div class="mav bav"><i class="ti ti-robot"></i></div><div class="bubble dots"><span></span><span></span><span></span></div>';
+  wrap.appendChild(d); wrap.scrollTop=wrap.scrollHeight;
+}
+function hideDots() { const d=document.getElementById('dots'); if(d) d.remove(); }
+
+function getContext() {
+  const tb=cats.reduce((s,c)=>s+c.budget,0), ts=cats.reduce((s,c)=>s+c.spent,0);
+  return `Current budget (Philippine Peso ₱):\nTotal budget: ₱${tb.toLocaleString()}, Spent: ₱${ts.toLocaleString()}, Remaining: ₱${(tb-ts).toLocaleString()}\nCategories:\n`+cats.map(c=>`- ${c.name}: ₱${c.spent.toLocaleString()} spent of ₱${c.budget.toLocaleString()} (${c.budget>0?Math.round(c.spent/c.budget*100):0}%)`).join('\n');
+}
+
+async function callGemini(msg) {
+  history.push({role:'user',parts:[{text:msg}]});
+  const sys = `You are a friendly, practical budget advisor helping a Filipino user manage their personal allowance. ${getContext()}\n\nGive concise advice under 120 words. Be warm and encouraging. Always use ₱ (Philippine Peso). If asked to log expenses, say to type "add ₱[amount] to [category]".`;
+  const body = {
+    system_instruction:{parts:[{text:sys}]},
+    contents: history,
+    generationConfig:{maxOutputTokens:300,temperature:0.7}
+  };
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${KEY}`,{
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message);
+  const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not respond. Please try again.';
+  history.push({role:'model',parts:[{text:reply}]});
+  return reply;
+}
+
+function parseExpense(text) {
+  const m = text.match(/add\s+[₱]?(\d[\d,]*(?:\.\d+)?)\s+to\s+(.+)/i);
+  if(!m) return null;
+  const amt = parseFloat(m[1].replace(/,/g,''));
+  const cn = m[2].trim().toLowerCase();
+  const cat = cats.find(c=>c.name.toLowerCase().includes(cn)||cn.includes(c.name.toLowerCase().split(' ')[0]));
+  return cat?{cat,amt}:null;
+}
+
+async function send() {
+  const inp = document.getElementById('inp');
+  const text = inp.value.trim();
+  if(!text||busy) return;
+  inp.value=''; inp.style.height='';
+  addMsg('user',text);
+  const exp = parseExpense(text);
+  if(exp) {
+    exp.cat.spent+=exp.amt; renderSidebar();
+    addMsg('bot',`Done! Added ${fmt(exp.amt)} to ${exp.cat.name}. Total spent there: ${fmt(exp.cat.spent)} of ${fmt(exp.cat.budget)}.`);
+    return;
+  }
+  busy=true; document.getElementById('sbtn').disabled=true; showDots();
+  try {
+    const reply = await callGemini(text);
+    hideDots(); addMsg('bot',reply);
+  } catch(e) {
+    hideDots(); addMsg('bot','Error: '+(e.message||'Check your API key and try again.'));
+  }
+  busy=false; document.getElementById('sbtn').disabled=false;
+}
+
+function qs(msg) { document.getElementById('inp').value=msg; send(); }
+
+function showModal() {
+  const o=document.createElement('div'); o.className='modal-bg';
+  o.innerHTML=`<div class="modal"><h3>Add budget category</h3><label>Category name</label><input id="mn" placeholder="e.g. Clothing"/><label>Monthly budget (₱)</label><input id="mb" type="number" placeholder="e.g. 500"/><div class="mactions"><button class="mcx" onclick="document.querySelector('.modal-bg').remove()">Cancel</button><button class="mok" onclick="addCat()">Add</button></div></div>`;
+  document.body.appendChild(o);
+  setTimeout(()=>o.querySelector('#mn').focus(),50);
+}
+
+function addCat() {
+  const name=document.getElementById('mn').value.trim();
+  const budget=parseFloat(document.getElementById('mb').value);
+  if(!name||!budget||budget<=0) return;
+  cats.push({id:nid++,name,budget,spent:0,color:COLORS[(nid-2)%COLORS.length]});
+  document.querySelector('.modal-bg').remove();
+  renderSidebar();
+  addMsg('bot',`Added "${name}" with ₱${budget.toLocaleString()} budget! Type "add ₱[amount] to ${name}" to log expenses.`);
+}
+
+document.getElementById('inp').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} });
+document.getElementById('inp').addEventListener('input',function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,80)+'px'; });
+document.getElementById('key-inp').addEventListener('keydown',e=>{ if(e.key==='Enter') startApp(); });
+</script>
+</body>
+</html>
